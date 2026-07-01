@@ -11,6 +11,7 @@ export default defineConfig({
   workers: process.env['CI'] ? 1 : undefined,
   reporter: [
     ['html', { open: 'never' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
   ],
   use: {
@@ -23,6 +24,7 @@ export default defineConfig({
     {
       name: 'api',
       testMatch: /.*\.api\.spec\.ts/,
+      testIgnore: /.*-contract\.api\.spec\.ts/,
       use: {
         baseURL: envConfig.apiBaseURL,
       },

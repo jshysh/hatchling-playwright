@@ -2,9 +2,9 @@ name: Playwright Tests
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
   pull_request:
-    branches: [main, staging]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -16,6 +16,12 @@ on:
           - local
           - staging
           - production
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
 
 jobs:
   test:
@@ -40,9 +46,27 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test
 
-      - uses: actions/upload-artifact@v4
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: Playwright Tests
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ github.run_id }}
           path: playwright-report/
+          retention-days: 30
+
+      - name: Upload JUnit Results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: junit-results-${{ github.run_id }}
+          path: test-results/junit.xml
           retention-days: 30
