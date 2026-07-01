@@ -12,8 +12,8 @@ export interface RegisterResponse {
 }
 
 /**
- * ASP.NET Core ProblemDetails format returned for client errors (400).
- * Field-level errors are keyed by property name, each with an array of messages.
+ * ASP.NET Core ProblemDetails format returned for validation errors (HTTP 400).
+ * Content-Type: application/problem+json
  */
 export interface RegisterErrorResponse {
   type?: string;
@@ -23,6 +23,14 @@ export interface RegisterErrorResponse {
   message?: string;
   errors?: Record<string, string[]>;
   traceId?: string;
+}
+
+/**
+ * Returned when registering with an email that already exists (HTTP 400).
+ * Content-Type: application/json
+ */
+export interface RegisterDuplicateEmailErrorResponse {
+  message: string;
 }
 
 /** Returned by the API when the registration rate limit is exceeded (429) */

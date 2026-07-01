@@ -1,14 +1,14 @@
 import { test, expect } from '../../../fixtures/api.fixture';
 import { RegisterRequestBuilder } from '../../../api/builders/auth/RegisterRequestBuilder';
-import { RegisterResponse, RegisterErrorResponse } from '../../../api/models/auth/RegisterResponse';
+import { RegisterResponse, RegisterErrorResponse, RegisterDuplicateEmailErrorResponse } from '../../../api/models/auth/RegisterResponse';
 
 /**
  * POST /auth/provider/register
  *
  * Confirmed via contract exploration (local dev):
  * - Success: HTTP 200, flat JSON body, refresh token delivered as HttpOnly cookie
- * - Error format: ASP.NET Core ProblemDetails — title, status, and errors fields
- * - Duplicate email and validation failures: HTTP 400
+ * - Validation failures: ASP.NET ProblemDetails (title, status, errors)
+ * - Duplicate email: HTTP 400 with { message: string }
  * - acceptedTerms is not enforced server-side (API returns 200 regardless)
  * - Rate limit: 429 with retry-after: 3600s — run tests serially to avoid exhausting quota
  * - Turnstile token 'XXXX.DUMMY.TOKEN.XXXX' is accepted in local dev
@@ -48,13 +48,8 @@ test.describe('POST /auth/provider/register', () => {
 
     expect(duplicateResponse.status()).toBe(400);
 
-    const body = (await duplicateResponse.json()) as RegisterErrorResponse;
-    expect(body.status).toBe(400);
-    expect(body.title).toBeTruthy();
-
-    const emailErrors = body.errors?.['Email'] ?? body.errors?.['email'];
-    expect(emailErrors).toBeDefined();
-    expect(emailErrors!.length).toBeGreaterThan(0);
+    const body = (await duplicateResponse.json()) as RegisterDuplicateEmailErrorResponse;
+    expect(body.message).toBe('User with this email already exists');
   });
 
   test('API does not enforce acceptedTerms server-side', async ({ authClient }) => {
