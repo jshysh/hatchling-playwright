@@ -8,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  workers: process.env['CI'] ? 1 : undefined,
+  workers: process.env['CI'] ? 2 : undefined,
   reporter: [
     ['html', { open: 'never' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
@@ -18,6 +18,11 @@ export default defineConfig({
     baseURL: envConfig.baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+  },
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 100,
+    },
   },
 
   projects: [
@@ -30,19 +35,22 @@ export default defineConfig({
       },
     },
     {
-      name: 'chromium',
-      testIgnore: /.*\.api\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      name: 'ui-desktop',
+      testDir: './tests/ui',
+      testMatch: /.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: envConfig.uiBaseURL,
+      },
     },
     {
-      name: 'firefox',
-      testIgnore: /.*\.api\.spec\.ts/,
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      testIgnore: /.*\.api\.spec\.ts/,
-      use: { ...devices['Desktop Safari'] },
+      name: 'ui-mobile',
+      testDir: './tests/ui',
+      testMatch: /.*\.spec\.ts/,
+      use: {
+        ...devices['Pixel 5'],
+        baseURL: envConfig.uiBaseURL,
+      },
     },
   ],
 });
