@@ -12,12 +12,14 @@ export interface RegisterResponse {
 }
 
 /**
- * ASP.NET Core ProblemDetails format returned for validation errors (400).
+ * ASP.NET Core ProblemDetails format returned for client errors (400).
  * Field-level errors are keyed by property name, each with an array of messages.
  */
 export interface RegisterErrorResponse {
-  title?: string;
-  status?: number;
+  type?: string;
+  title: string;
+  status: number;
+  detail?: string;
   message?: string;
   errors?: Record<string, string[]>;
   traceId?: string;

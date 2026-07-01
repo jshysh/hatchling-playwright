@@ -7,14 +7,11 @@ import { RegisterResponse, RegisterErrorResponse } from '../../../api/models/aut
  *
  * Confirmed via contract exploration (local dev):
  * - Success: HTTP 200, flat JSON body, refresh token delivered as HttpOnly cookie
- * - Error format: ASP.NET Core ProblemDetails — use `title` and `errors` fields, not `message`
+ * - Error format: ASP.NET Core ProblemDetails — title, status, and errors fields
+ * - Duplicate email and validation failures: HTTP 400
  * - acceptedTerms is not enforced server-side (API returns 200 regardless)
  * - Rate limit: 429 with retry-after: 3600s — run tests serially to avoid exhausting quota
  * - Turnstile token 'XXXX.DUMMY.TOKEN.XXXX' is accepted in local dev
- *
- * Still to confirm against the live API:
- * - Duplicate email status code (assumed 409)
- * - Validation error status codes (assumed 400)
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -49,11 +46,15 @@ test.describe('POST /auth/provider/register', () => {
 
     const duplicateResponse = await authClient.register(payload);
 
-    // ASSUMPTION: 409 Conflict for duplicate email — confirm against live API
-    expect(duplicateResponse.status()).toBe(409);
+    expect(duplicateResponse.status()).toBe(400);
 
     const body = (await duplicateResponse.json()) as RegisterErrorResponse;
-    expect(body.title ?? body.message).toBeTruthy();
+    expect(body.status).toBe(400);
+    expect(body.title).toBeTruthy();
+
+    const emailErrors = body.errors?.['Email'] ?? body.errors?.['email'];
+    expect(emailErrors).toBeDefined();
+    expect(emailErrors!.length).toBeGreaterThan(0);
   });
 
   test('API does not enforce acceptedTerms server-side', async ({ authClient }) => {
@@ -75,12 +76,15 @@ test.describe('POST /auth/provider/register', () => {
 
     const response = await authClient.register(payload);
 
-    // ASSUMPTION: 400 Bad Request — confirm against live API
     expect(response.status()).toBe(400);
 
-    // ASP.NET Core ProblemDetails format: validation details in `title` and `errors`
     const body = (await response.json()) as RegisterErrorResponse;
-    expect(body.title ?? body.message).toBeTruthy();
+    expect(body.status).toBe(400);
+    expect(body.title).toBeTruthy();
+
+    const emailErrors = body.errors?.['Email'] ?? body.errors?.['email'];
+    expect(emailErrors).toBeDefined();
+    expect(emailErrors!.length).toBeGreaterThan(0);
   });
 
   test('should return a validation error for an invalid password', async ({ authClient }) => {
@@ -91,10 +95,14 @@ test.describe('POST /auth/provider/register', () => {
 
     const response = await authClient.register(payload);
 
-    // ASSUMPTION: 400 Bad Request — confirm against live API
     expect(response.status()).toBe(400);
 
     const body = (await response.json()) as RegisterErrorResponse;
-    expect(body.title ?? body.message).toBeTruthy();
+    expect(body.status).toBe(400);
+    expect(body.title).toBeTruthy();
+
+    const passwordErrors = body.errors?.['Password'] ?? body.errors?.['password'];
+    expect(passwordErrors).toBeDefined();
+    expect(passwordErrors!.length).toBeGreaterThan(0);
   });
 });
